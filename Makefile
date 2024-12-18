@@ -1,4 +1,6 @@
+# Variables
 LIBFTPRINTF_DIR = ../
+LIBFT_DIR = ../libft
 ERROR_LIMIT = 0
 
 SHELL = /bin/sh
@@ -9,6 +11,7 @@ TESTS = $(shell for ((i=1;i<=2000;i++)); do echo "$$i "; done)
 NAME = tester
 LIBTEST = libtest/libtest.a
 LIBFTPRINTF = ${LIBFTPRINTF_DIR}/libftprintf.a
+LIBFT = ${LIBFT_DIR}/libft.a
 
 SRC_DIR = ./src
 OBJ_DIR = ./obj
@@ -49,20 +52,96 @@ nosan: SANITIZE :=
 nosan: ${NAME}
 	@echo ""
 
-${NAME}: ${LIBFTPRINTF} ${LIBTEST} ${HEADERS} ${OBJS}
-	${CC} ${SANITIZE} -L./libtest -L${LIBFTPRINTF_DIR} ${OBJS} -o ${NAME} -ltest -lftprintf -ldl
+# Modify the dependencies to include ${LIBFT}
+${NAME}: ${LIBFTPRINTF} ${LIBTEST} ${LIBFT} ${HEADERS} ${OBJS}
+	${CC} ${SANITIZE} -L./libtest -L${LIBFTPRINTF_DIR} -L${LIBFT_DIR} ${OBJS} -o ${NAME} -ltest -lftprintf -lft -ldl
 	mkdir -p files
 
+# Rule to build libftprintf.a
 ${LIBFTPRINTF}:
 	make -C ${LIBFTPRINTF_DIR}
 
+# Rule to build libft.a
+${LIBFT}:
+	make -C ${LIBFT_DIR}
+
+# Rule to build libtest.a
 ${LIBTEST}:
 	make -C libtest CFLAGS="${CFLAGS}"
 
 ${OBJ_DIR}/%.o: ${SRC_DIR}/%.c ${HEADERS} Makefile
 	${CC} -DERROR_LIMIT=${ERROR_LIMIT} -DBUFFER_SIZE=32 -c $< -o $@
 
-r: run
+r: run# Variables
+LIBFTPRINTF_DIR = ../
+LIBFT_DIR = ../libft
+ERROR_LIMIT = 0
+
+SHELL = /bin/sh
+
+# I'm not proud of this
+TESTS = $(shell for ((i=1;i<=2000;i++)); do echo "$$i "; done)
+
+NAME = tester
+LIBTEST = libtest/libtest.a
+LIBFTPRINTF = ${LIBFTPRINTF_DIR}/libftprintf.a
+LIBFT = ${LIBFT_DIR}/libft.a
+
+SRC_DIR = ./src
+OBJ_DIR = ./obj
+
+SRCS_FILES = main.c \
+			 tests.c \
+			 get_next_line.c \
+			 get_next_line_utils.c \
+			 utils.c
+
+HEADERS_FILES = helpers.h
+HEADERS = ${addprefix ${SRC_DIR}/, ${HEADERS_FILES}}
+
+SRCS = ${addprefix ${SRC_DIR}/, ${SRCS_FILES}}
+
+OBJS_FILES = ${SRCS_FILES:.c=.o}
+OBJS = ${addprefix ${OBJ_DIR}/, ${OBJS_FILES}}
+
+CFLAGS = -Wall -Wextra -g3
+
+PRINTF_FLAGS = ${CFLAGS} -Werror
+
+SANITIZE = -fsanitize=address
+
+UNAME = ${shell uname -s}
+ifeq (${UNAME}, Darwin)
+	SRCS_FILES := ${SRCS_FILES} malloc_count.c 
+endif
+
+CC = clang ${CFLAGS}
+
+export LSAN_OPTIONS=exitcode=30
+
+all: ${NAME}
+	@echo ""
+
+nosan: SANITIZE :=
+nosan: ${NAME}
+	@echo ""
+
+# Modify the dependencies to include ${LIBFT}
+${NAME}: ${LIBFTPRINTF} ${LIBTEST} ${LIBFT} ${HEADERS} ${OBJS}
+	${CC} ${SANITIZE} -L./libtest -L${LIBFTPRINTF_DIR} -L${LIBFT_DIR} ${OBJS} -o ${NAME} -ltest -lftprintf -lft -ldl
+	mkdir -p files
+
+# Rule to build libftprintf.a
+${LIBFTPRINTF}:
+	make -C ${LIBFTPRINTF_DIR}
+
+# Rule to build libft.a
+${LIBFT}:
+	make -C ${LIBFT_DIR}
+
+# Rule to build libtest.a
+${LIBTEST}:
+	make -C libtest CFLAGS="${CFLAGS}"
 run:
 	./${NAME} 2>myleaks.txt
 
